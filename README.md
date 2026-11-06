@@ -6,7 +6,7 @@
   <a href="https://tr3at.fun">
     <img width="130" height="53" alt="image" src="https://github.com/user-attachments/assets/b74f2c35-444e-4a5a-87fe-0830b5cc0f98" />
   </a>
-  <a>
+  <a href="README.ru.md">
     <img width="130" height="53" alt="image" src="https://github.com/user-attachments/assets/4f52c0e8-bcc7-47d4-a244-9c7c21356fe5" />
   </a>
 </p>
