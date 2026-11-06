@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="tr3at.fun">
+  <a href="https://tr3at.fun">
     <img width="130" height="53" alt="image" src="https://github.com/user-attachments/assets/b74f2c35-444e-4a5a-87fe-0830b5cc0f98" />
   </a>
   <a>
