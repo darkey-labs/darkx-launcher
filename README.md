@@ -9,4 +9,7 @@
   <a href="README.ru.md">
     <img width="130" height="53" alt="image" src="https://github.com/user-attachments/assets/4f52c0e8-bcc7-47d4-a244-9c7c21356fe5" />
   </a>
+  <a href="https://t.me/darkx_visuals">
+    <img width="130" height="53" alt="image" src="https://github.com/user-attachments/assets/8e0e943d-af64-47e2-9b33-14a3606cd05b" />
+  </a>
 </p>
