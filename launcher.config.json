@@ -1,0 +1,14 @@
+{
+  "launcherName": "DarkX Launcher",
+  "defaultMcVersion": "1.21.11",
+  "darkxClientUrl": "https://github.com/darkey-labs/darkx/releases/download/1.21.11/darkx-visuals-1.0.0.jar",
+  "darkxClientFile": "darkx-visuals.jar",
+  "msClientId": "",
+  "darkxMcVersions": [
+    "1.21.11"
+  ],
+  "releasesRepo": "darkey-labs/darkx",
+  "launcherRepo": "darkey-labs/darkx-launcher",
+  "firebaseUrl": "https://darkx-b0d38-default-rtdb.europe-west1.firebasedatabase.app",
+  "curseforgeKey": ""
+}
