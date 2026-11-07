@@ -19,9 +19,11 @@ function classpath(prep) {
   return out.join(path.delimiter);
 }
 
-/** Возвращает {java, args, cwd}. Чистая функция — легко тестировать. */
-function command(prep, account, token, inst, cfg, launcherVersion, server) {
+/** Возвращает {java, args, cwd}. Чистая функция — легко тестировать.
+ *  opts.authlib = {jar, api}: для аккаунтов Ely.by подключает authlib-injector (проверка сессии на их сервере). */
+function command(prep, account, token, inst, cfg, launcherVersion, server, opts) {
   const v = prep.version;
+  if (account.type === 'ely' && !(opts && opts.authlib)) throw new Error('Для аккаунта Ely.by нужен authlib-injector');
   const vars = {
     auth_player_name: account.name,
     version_name: v.id,
@@ -33,7 +35,7 @@ function command(prep, account, token, inst, cfg, launcherVersion, server) {
     auth_session: token,
     clientid: '',
     auth_xuid: '',
-    user_type: account.type === 'microsoft' ? 'msa' : 'legacy',
+    user_type: account.type === 'microsoft' ? 'msa' : account.type === 'ely' ? 'mojang' : 'legacy',
     version_type: v.type || 'release',
     user_properties: '{}',
     natives_directory: prep.nativesDir,
@@ -51,7 +53,8 @@ function command(prep, account, token, inst, cfg, launcherVersion, server) {
   if (server && !quick) a.game.push('--server', server.host, '--port', String(server.port || 25565));
   const mem = Math.max(512, Number(inst.memoryMb || cfg.memoryMb || 4096));
   const extra = String(inst.jvmArgs || cfg.jvmArgs || '').split(/\s+/).filter(Boolean);
-  const args = ['-Xmx' + mem + 'M', '-Xms' + Math.min(512, mem) + 'M', ...extra, ...a.jvm, a.mainClass, ...a.game];
+  const agent = account.type === 'ely' ? ['-javaagent:' + opts.authlib.jar + '=' + opts.authlib.api, '-Dauthlibinjector.noLogFile'] : [];
+  const args = ['-Xmx' + mem + 'M', '-Xms' + Math.min(512, mem) + 'M', ...agent, ...extra, ...a.jvm, a.mainClass, ...a.game];
   return { java: prep.javaBin, args, cwd: prep.instDir };
 }
 

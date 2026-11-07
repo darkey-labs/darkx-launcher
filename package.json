@@ -1,7 +1,7 @@
 {
   "name": "darkx-launcher",
   "productName": "DarkX Launcher",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Лаунчер Minecraft с автоустановкой Fabric и DarkX Visuals",
   "main": "main/main.js",
   "author": "DarkX",
@@ -10,7 +10,7 @@
   "scripts": {
     "css": "tailwindcss -i renderer/input.css -o renderer/style.css --minify",
     "start": "npm run css && electron .",
-    "test": "node test/run.js && node test/importers.js",
+    "test": "node test/run.js && node test/importers.js && node test/ely.js",
     "test:net": "electron test/nettest.js",
     "dist": "npm run css && electron-builder --win"
   },
@@ -39,7 +39,7 @@
       "!renderer/input.css"
     ],
     "portable": {
-      "artifactName": "DarkX-Launcher-Portable-${version}.${ext}"
+      "artifactName": "DarkX-Launcher-${version}.${ext}"
     },
     "win": {
       "target": [

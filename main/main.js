@@ -10,6 +10,7 @@ app.setPath('userData', process.env.DXL_DATA || path.join(app.getPath('appData')
 const store = require('./lib/store');
 const P = require('./lib/paths');
 const accounts = require('./lib/accounts');
+const authlib = require('./lib/authlib');
 const V = require('./lib/versions');
 const installer = require('./lib/installer');
 const launch = require('./lib/launch');
@@ -267,6 +268,22 @@ handle('acc:ms:start', async () => {
     }
   })();
   return { userCode: dev.user_code, uri: dev.verification_uri, expiresIn: dev.expires_in };
+});
+
+// Ely.by: ник/e-mail + пароль. Если включена 2FA — отвечаем {need2fa:true}, окно просит код и шлёт запрос повторно.
+handle('acc:ely', async (o) => {
+  o = o || {};
+  let acc;
+  try {
+    acc = await accounts.elyLogin(o.login, o.password, o.totp);
+  } catch (e) {
+    if (e.code === 'ELY_2FA') return { need2fa: true };
+    throw e;
+  }
+  const s = settings();
+  s.selectedAccount = acc.id;
+  store.save('settings');
+  return snapshot();
 });
 
 handle('acc:ms:cancel', () => { if (msSignal) msSignal.cancelled = true; });
@@ -584,9 +601,10 @@ handle('play', async () => {
 
   setState('installing');
   playAbort = new AbortController();
-  let prep, token;
+  let prep, token, authlibJar;
   try {
     token = await accounts.ensureFresh(acc, cfg.msClientId);
+    if (acc.type === 'ely') authlibJar = await authlib.ensure();
     prep = await installer.prepare(inst, cfg, (p) => send('ev:progress', p), playAbort.signal);
   } catch (e) {
     setState('idle');
@@ -594,7 +612,8 @@ handle('play', async () => {
   } finally {
     playAbort = null;
   }
-  const cmd = launch.command(prep, acc, token, inst, cfg, app.getVersion(), server ? { host: server.host, port: server.port } : null);
+  const cmd = launch.command(prep, acc, token, inst, cfg, app.getVersion(), server ? { host: server.host, port: server.port } : null,
+    acc.type === 'ely' ? { authlib: { jar: authlibJar, api: accounts.ELY_API } } : null);
   send('ev:log', '[launcher] ' + prep.notes.join(' · '));
   send('ev:log', '[launcher] ' + cmd.java + ' ' + cmd.args.filter((a) => !a.includes(token) || token === '0').join(' ').slice(0, 600));
   inst.lastPlayed = Date.now();

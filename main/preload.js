@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   addOffline: call('acc:offline'),
   removeAccount: call('acc:remove'),
   selectAccount: call('acc:select'),
+  elyLogin: call('acc:ely'),
   msStart: call('acc:ms:start'),
   msCancel: call('acc:ms:cancel'),
   versions: call('versions'),

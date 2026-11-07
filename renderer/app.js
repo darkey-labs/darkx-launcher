@@ -68,6 +68,8 @@ function renderHeader() {
   $('#side-ver').textContent = 'v' + S.version;
 }
 
+const ACC_LABEL = { microsoft: 'Microsoft', ely: 'Ely.by', offline: 'Offline' };
+
 function accountMenu(anchor) {
   popover(anchor, (close) => {
     const rows = S.accounts.map((a) => {
@@ -77,7 +79,7 @@ function accountMenu(anchor) {
           onclick: async () => { close(); const s = await act(api.selectAccount, a.id); if (s) setState(s); } },
         avatar(a, 28),
         h('div', { class: 'flex-1 min-w-0' }, h('div', { class: 'font-bold truncate' }, a.name),
-          h('div', { class: 'text-[10px] text-dim' }, a.type === 'microsoft' ? 'Microsoft' : 'Offline')),
+          h('div', { class: 'text-[10px] text-dim' }, ACC_LABEL[a.type] || 'Offline')),
         on ? svg('check', 16, 'text-accent') : null),
         h('button', { class: 'p-2 rounded-lg text-mute hover:text-bad hover:bg-raise', title: 'Удалить аккаунт', 'aria-label': 'Удалить аккаунт',
           onclick: () => { close(); confirmRemoveAccount(a); } }, svg('trash', 14)));
@@ -100,13 +102,50 @@ function confirmRemoveAccount(a) {
 // ============================================================ новый аккаунт
 
 function newAccountModal() {
-  const opt = (icon, title, text, fn) => h('button', { class: 'card p-5 flex flex-col items-center gap-2 text-center hover:bg-raise hover:border-accent/50 transition-colors cursor-pointer', onclick: fn },
+  const opt = (icon, title, text, fn) => h('button', { class: 'flex-1 min-w-0 card p-5 flex flex-col items-center gap-2 text-center hover:bg-raise hover:border-accent/50 transition-colors cursor-pointer', onclick: fn },
     h('span', { class: 'text-accent' }, svg(icon, 34)), h('span', { class: 'font-bold text-[15px]' }, title), h('span', { class: 'text-[11px] text-dim' }, text));
   modal('Новый аккаунт',
-    h('div', { class: 'grid grid-cols-2 gap-3' },
+    h('div', { class: 'flex gap-3' },
       opt('ms', 'Microsoft', 'Лицензия: вход по коду', () => { closeModal(); startMicrosoft(); }),
+      opt('shield', 'Ely.by', 'Аккаунт Ely.by: ник и скин', elyModal),
       opt('user', 'Offline', 'Любой ник, без лицензии', offlineModal)),
-    null, 440);
+    null, 560);
+}
+
+function elyModal() {
+  const login = h('input', { class: 'input', placeholder: 'Ник или e-mail', spellcheck: 'false', autocomplete: 'username' });
+  const pass = h('input', { class: 'input', type: 'password', placeholder: 'Пароль', autocomplete: 'current-password' });
+  const totp = h('input', { class: 'input', placeholder: 'Код из приложения', maxlength: '8', inputmode: 'numeric', autocomplete: 'one-time-code' });
+  const totpBox = h('div', { class: 'hidden' }, h('label', { class: 'label' }, 'Код двухфакторной защиты'), totp);
+  let busy = false;
+  const go = async () => {
+    if (busy) return;
+    busy = true; enter.disabled = true;
+    try {
+      const r = await act(api.elyLogin, { login: login.value, password: pass.value, totp: totp.value });
+      if (!r) return;
+      if (r.need2fa) {
+        totpBox.classList.remove('hidden');
+        toast('Включена двухфакторная защита: введи код из приложения');
+        setTimeout(() => totp.focus(), 30);
+        return;
+      }
+      closeModal(); setState(r);
+      const a = currentAccount();
+      toast('Аккаунт «' + (a ? a.name : 'Ely.by') + '» добавлен', 'ok');
+    } finally { busy = false; enter.disabled = false; }
+  };
+  const enter = h('button', { class: 'btn btn-accent', onclick: go }, 'Войти');
+  for (const el of [login, pass, totp]) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+  modal('Вход через Ely.by',
+    h('div', { class: 'flex flex-col gap-3' },
+      h('div', {}, h('label', { class: 'label' }, 'Ник или e-mail'), login),
+      h('div', {}, h('label', { class: 'label' }, 'Пароль'), pass),
+      totpBox,
+      h('div', { class: 'text-[11px] text-mute' }, 'Пароль уходит только на authserver.ely.by и нигде не сохраняется. С таким аккаунтом можно играть на серверах с поддержкой Ely.by и на offline-серверах, но не на серверах, которые проверяют только лицензию Mojang.'),
+      h('button', { class: 'text-[11px] text-accent text-left hover:text-ink', onclick: () => api.external('https://ely.by') }, 'Нет аккаунта? Зарегистрироваться на ely.by')),
+    (close) => [h('button', { class: 'btn', onclick: () => { close(); newAccountModal(); } }, 'Назад'), enter]);
+  setTimeout(() => login.focus(), 30);
 }
 
 function offlineModal() {

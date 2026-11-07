@@ -26,6 +26,7 @@ const ICON = {
   download: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   trash: '<path d="M5 7h14M9 7V4.5h6V7M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   ms: '<path d="M3 3h8.5v8.5H3zM12.5 3H21v8.5h-8.5zM3 12.5h8.5V21H3zM12.5 12.5H21V21h-8.5z" fill="currentColor"/>',
+  shield: '<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
   user: '<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8"/>',
   grid: '<g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7" rx="2.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="2.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="2.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="2.6"/></g>',
   tools: '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><g transform="rotate(-45 12 12)"><rect x="9" y="2.4" width="6" height="19.2" rx="1.5"/><path d="M9 6.4h2.4M9 9.9h3.4M9 13.4h2.4M9 16.9h3.4"/></g><g transform="rotate(45 12 12)"><path d="M10.1 3.4h3.8v13l-1.9 4.2-1.9-4.2z" fill="#18181B"/><path d="M10.1 7.2h3.8"/></g></g>',

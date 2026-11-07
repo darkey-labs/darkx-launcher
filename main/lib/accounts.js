@@ -1,5 +1,5 @@
 'use strict';
-// Аккаунты: оффлайн и Microsoft (device code flow → Xbox Live → XSTS → Minecraft Services).
+// Аккаунты: оффлайн, Microsoft (device code flow → Xbox Live → XSTS → Minecraft Services) и Ely.by (Yggdrasil).
 const crypto = require('crypto');
 const http = require('./http');
 const store = require('./store');
@@ -141,9 +141,82 @@ async function finishMicrosoft(tokens) {
   return acc;
 }
 
+// ---------------------------------------------------------------------- Ely.by
+// Yggdrasil-совместимый сервер authserver.ely.by. Пароль не хранится нигде: после входа остаются
+// только accessToken и clientToken (шифруются тем же sealer, что и токены Microsoft).
+// Для игры нужен authlib-injector, который направляет проверку сессии на ELY_API (см. authlib.js).
+const ELY = 'https://authserver.ely.by';
+const ELY_API = ELY + '/api/authlib-injector';
+
+const dashUuid = (id) => String(id).replace(/-/g, '').replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+/** Нет связи с Ely.by или сервер лежит: запуск из-за этого не блокируем. */
+const elyDown = (e) => !e.status || e.status >= 500;
+
+function elyError(e, withToken) {
+  const b = e && e.body;
+  const msg = b && typeof b === 'object' ? String(b.errorMessage || b.error_description || b.message || '') : '';
+  if (/two factor/i.test(msg)) return Object.assign(new Error('Включена двухфакторная защита — нужен код из приложения'), { code: 'ELY_2FA' });
+  if (/invalid credentials/i.test(msg)) return new Error(withToken ? 'Неверный пароль или код двухфакторной защиты' : 'Неверный логин или пароль');
+  if (msg && e.status) return new Error('Ely.by: ' + msg);
+  return e;
+}
+
+/** Вход по нику/e-mail и паролю. totp — код 2FA, если сервер его потребовал (шлётся как «пароль:код»). */
+async function elyLogin(login, password, totp) {
+  login = String(login || '').trim();
+  password = String(password || '');
+  totp = String(totp || '').replace(/\s+/g, '');
+  if (!login || !password) throw new Error('Введи ник или e-mail и пароль от Ely.by');
+  const clientToken = crypto.randomUUID();
+  let r;
+  try {
+    r = await http.json(ELY + '/auth/authenticate', {
+      body: { username: login, password: totp ? password + ':' + totp : password, clientToken, requestUser: true }
+    });
+  } catch (e) {
+    throw elyError(e, !!totp);
+  }
+  const prof = r && r.selectedProfile;
+  if (!r || !r.accessToken || !prof || !prof.id || !prof.name) throw new Error('Ely.by не вернул профиль игрока');
+  const uuid = dashUuid(prof.id);
+  let acc = list().find((a) => a.type === 'ely' && a.uuid === uuid);
+  if (!acc) {
+    acc = { id: crypto.randomUUID(), type: 'ely', uuid };
+    list().push(acc);
+  }
+  acc.name = prof.name;
+  acc.accessToken = sealer.seal(r.accessToken);
+  acc.clientToken = sealer.seal(r.clientToken || clientToken);
+  store.save('accounts');
+  return acc;
+}
+
+/** Проверяет токен Ely.by (validate), при необходимости обновляет (refresh). */
+async function elyEnsureFresh(acc) {
+  const token = sealer.open(acc.accessToken);
+  try {
+    await http.json(ELY + '/auth/validate', { body: { accessToken: token } });
+    return token;
+  } catch (e) {
+    if (elyDown(e)) return token;
+  }
+  let r;
+  try {
+    r = await http.json(ELY + '/auth/refresh', { body: { accessToken: token, clientToken: sealer.open(acc.clientToken), requestUser: false } });
+  } catch (e) {
+    if (elyDown(e)) return token;
+    throw Object.assign(new Error('Сессия Ely.by истекла — войди в аккаунт заново'), { code: 'ELY_RELOGIN' });
+  }
+  if (!r || !r.accessToken) throw Object.assign(new Error('Сессия Ely.by истекла — войди в аккаунт заново'), { code: 'ELY_RELOGIN' });
+  acc.accessToken = sealer.seal(r.accessToken);
+  store.save('accounts');
+  return r.accessToken;
+}
+
 /** Вернёт актуальный accessToken (обновит при необходимости). */
 async function ensureFresh(acc, clientId) {
   if (acc.type === 'offline') return '0';
+  if (acc.type === 'ely') return elyEnsureFresh(acc);
   if (acc.mcToken && acc.mcExpires - Date.now() > 120000) return sealer.open(acc.mcToken);
   needClient(clientId);
   let t;
@@ -159,4 +232,4 @@ async function ensureFresh(acc, clientId) {
   return sealer.open(updated.mcToken);
 }
 
-module.exports = { list, find, publicView, addOffline, remove, deviceStart, devicePoll, finishMicrosoft, ensureFresh, setSealer, xboxChain };
+module.exports = { list, find, publicView, addOffline, remove, deviceStart, devicePoll, finishMicrosoft, ensureFresh, setSealer, xboxChain, elyLogin, ELY_API };
