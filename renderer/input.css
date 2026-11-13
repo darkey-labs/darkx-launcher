@@ -1,0 +1,319 @@
+@font-face { font-family: 'Montserrat'; font-weight: 400; src: url('../assets/fonts/montserrat-cyrillic-400-normal.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'Montserrat'; font-weight: 400; src: url('../assets/fonts/montserrat-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Montserrat'; font-weight: 500; src: url('../assets/fonts/montserrat-cyrillic-500-normal.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'Montserrat'; font-weight: 500; src: url('../assets/fonts/montserrat-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Montserrat'; font-weight: 600; src: url('../assets/fonts/montserrat-cyrillic-600-normal.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'Montserrat'; font-weight: 600; src: url('../assets/fonts/montserrat-latin-600-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Montserrat'; font-weight: 700; src: url('../assets/fonts/montserrat-cyrillic-700-normal.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'Montserrat'; font-weight: 700; src: url('../assets/fonts/montserrat-latin-700-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Montserrat'; font-weight: 800; src: url('../assets/fonts/montserrat-cyrillic-800-normal.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'Montserrat'; font-weight: 800; src: url('../assets/fonts/montserrat-latin-800-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* Ник на главной. Minecraft Five (MinecraftFive-Regular) кладётся в assets/fonts; без него рисуется Silkscreen — тоже пиксельный. */
+@font-face { font-family: 'Minecraft Five'; src: url('../assets/fonts/MinecraftFive-Regular.woff2') format('woff2'), url('../assets/fonts/MinecraftFive-Regular.woff') format('woff'), url('../assets/fonts/MinecraftFive-Regular.otf') format('opentype'), url('../assets/fonts/MinecraftFive-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Silkscreen'; font-weight: 400; src: url('../assets/fonts/silkscreen-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Silkscreen'; font-weight: 700; src: url('../assets/fonts/silkscreen-latin-700-normal.woff2') format('woff2'); }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --accent: 249 115 22; color-scheme: dark; }
+
+html, body { height: 100%; }
+body { @apply bg-black text-ink font-sans text-[13px] select-none overflow-hidden; font-weight: 500; }
+b, strong { font-weight: 700; }
+h1, h2, h3 { font-weight: 700; }
+input, select, textarea { user-select: text; }
+option { background: #0A0A0B; color: #E4E4E2; }
+button { font-family: inherit; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #1F1F22; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #2E2E32; }
+::-webkit-scrollbar-track { background: transparent; }
+
+.drag { -webkit-app-region: drag; }
+.nodrag { -webkit-app-region: no-drag; }
+
+@layer components {
+  .card { @apply bg-panel border border-line rounded-3xl; }
+  .tile { @apply bg-tile rounded-[22px]; }
+  .btn { @apply inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full border border-line2 bg-tile text-ink text-[13px] font-semibold transition-colors cursor-pointer; }
+  .btn:hover { @apply bg-raise border-mute; }
+  .btn:disabled { @apply opacity-40 cursor-default; }
+  .btn-accent { @apply bg-accent border-accent text-white font-bold; }
+  .btn-accent:hover { filter: brightness(1.08); }
+  .btn-bad { @apply bg-abort/10 border-abort/50 text-abort; }
+  .btn-bad:hover { @apply bg-abort/20 border-abort/70; }
+  .btn-sm { @apply h-8 px-4 text-[12px]; }
+  .input { @apply w-full h-11 px-4 rounded-2xl bg-black border border-line2 text-ink outline-none transition-colors; }
+  .input:focus { @apply border-mute; }
+  .label { @apply text-[11px] text-dim mb-1.5 block font-semibold; }
+  .chip { @apply inline-flex items-center h-5 px-2 rounded-full text-[10px] font-bold border border-line2 text-dim; }
+  .chip-accent { @apply border-accent/60 text-accent bg-accent/10; }
+  .rail { @apply w-11 h-11 rounded-2xl grid place-items-center text-dim cursor-pointer transition-colors border border-transparent; }
+  .rail:hover { @apply bg-raise text-ink; }
+  .rail.on { @apply bg-raise text-ink border-line2; }
+  .rail-update { @apply text-accent; animation: pulse 2s ease-in-out infinite; }
+  .acc-chip { @apply inline-flex items-center gap-2.5 h-[34px] pl-1 pr-3 rounded-2xl border border-line bg-panel text-ink text-[13px] cursor-pointer transition-colors; }
+  .acc-chip:hover { @apply bg-raise border-line2; }
+  .seg { @apply inline-flex p-1 rounded-full bg-black border border-line2 gap-1; }
+  .seg > button { @apply h-8 px-4 rounded-full text-[12px] font-semibold text-dim transition-colors cursor-pointer; }
+  .seg > button:hover { @apply text-ink; }
+  .seg > button.on { @apply bg-soft text-black; }
+  /* главная */
+  .pill { @apply inline-flex items-center gap-2 h-[54px] px-2.5 rounded-full bg-panel border border-line; }
+  .pill-btn { @apply w-10 h-10 rounded-xl grid place-items-center text-ink cursor-pointer transition-all overflow-hidden shrink-0; }
+  .pill-btn:hover { filter: brightness(1.15); }
+  .play { @apply inline-flex items-center h-[54px] pr-[8px] rounded-full bg-accent text-white transition-[filter,transform] select-none shadow-lg; }
+  .play-go { @apply h-full pl-5 pr-4 rounded-l-full text-[18px] font-medium text-white inline-flex items-center gap-2.5 cursor-pointer; }
+  .play-go:disabled { @apply cursor-default opacity-70; }
+  .play:hover { filter: brightness(1.06); }
+  .play-chev { @apply w-[38px] h-[38px] rounded-full grid place-items-center text-white transition-colors cursor-pointer; background: rgba(0, 0, 0, 0.22); }
+  .play-chev:hover:not(:disabled) { background: rgba(0, 0, 0, 0.34); }
+  .play-chev:disabled { @apply cursor-default opacity-60; }
+  .play.stop { @apply bg-abort text-white; }
+  .play.stop .play-chev { background: rgba(0, 0, 0, 0.25); }
+  .abort-btn { @apply h-[58px] px-12 rounded-full bg-abort text-black text-[18px] font-bold cursor-pointer transition-[filter,transform]; }
+  .abort-btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .abort-btn:disabled { @apply opacity-60 cursor-default; }
+  .wiz-row { @apply flex items-center gap-6 w-full text-left rounded-[26px] p-2 pr-4 transition-colors cursor-pointer; }
+  .wiz-row:hover { @apply bg-panel; }
+  .wiz-ico { @apply w-[72px] h-[72px] rounded-[24px] bg-tile grid place-items-center shrink-0; }
+}
+
+.pixel { font-family: 'Minecraft Five', 'Silkscreen', monospace; text-transform: uppercase; letter-spacing: .04em; font-weight: 400; }
+.pixel-img { image-rendering: pixelated; shape-rendering: crispEdges; }
+
+.pulse-bar { background-image: linear-gradient(90deg, transparent, rgb(var(--accent) / .7), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: slide 1.1s linear infinite; }
+@keyframes slide { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+.pop-in { animation: pop .14s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.fade-in { animation: fade .16s ease-out; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.overlay-in { animation: ovl .28s ease-out; }
+@keyframes ovl { from { opacity: 0; } to { opacity: 1; } }
+.tip-swap { animation: tipswap .5s ease-out; }
+@keyframes tipswap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+input::placeholder, textarea::placeholder { color: #5A5A58; opacity: 1; }
+
+input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border-radius: 6px; border: 1px solid #2E2E32; background: #000000; display: inline-grid; place-content: center; cursor: pointer; flex-shrink: 0; }
+input[type=checkbox]:checked { background: #D2D2D0; border-color: #D2D2D0; }
+input[type=checkbox]:checked::after { content: ''; width: 9px; height: 5px; border-left: 2px solid #000000; border-bottom: 2px solid #000000; transform: rotate(-45deg) translate(1px, -1px); }
+input[type=checkbox]:disabled { opacity: .4; cursor: default; }
+
+/* ============================================================ DarkAI & Markdown Styles */
+.darkai-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 40px;
+  padding: 0 1.15rem;
+  border-radius: 14px;
+  border: 1.5px solid rgb(var(--accent));
+  background: transparent;
+  color: rgb(var(--accent));
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, filter 0.15s ease;
+}
+.darkai-clear-btn:hover {
+  background: rgb(var(--accent) / 0.12);
+  filter: brightness(1.08);
+}
+
+.darkai-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background-color: rgb(var(--accent) / 0.22);
+  color: rgb(var(--accent));
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.darkai-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 2px;
+}
+.darkai-dots > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background-color: rgb(var(--accent));
+  animation: darkai-bounce 1.2s infinite ease-in-out both;
+}
+.darkai-dots > span:nth-child(1) { animation-delay: -0.28s; }
+.darkai-dots > span:nth-child(2) { animation-delay: -0.14s; }
+.darkai-dots > span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes darkai-bounce {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.78); }
+  40% { opacity: 1; transform: scale(1.1); }
+}
+
+.darkai-input-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 56px;
+  border-radius: 9999px;
+  background-color: #0D0D0F;
+  border: 1px solid #16161A;
+  padding-left: 1.5rem;
+  padding-right: 0.5rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.darkai-input-pill:focus-within {
+  border-color: #26262C;
+  background-color: #101013;
+}
+
+.darkai-input-field {
+  flex: 1 1 0%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 500;
+}
+.darkai-input-field::placeholder {
+  color: #5A5A5E;
+}
+
+.darkai-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: background-color 0.15s ease, filter 0.15s ease;
+}
+.darkai-send-btn.is-idle {
+  background-color: #525256;
+  color: rgba(255, 255, 255, 0.92);
+}
+.darkai-send-btn.is-idle:hover {
+  background-color: #626266;
+}
+.darkai-send-btn.is-ready {
+  background-color: rgb(var(--accent));
+  color: #FFFFFF;
+}
+.darkai-send-btn.is-ready:hover {
+  filter: brightness(1.08);
+}
+.darkai-send-btn.is-stop {
+  background-color: #FF3B30;
+  color: #FFFFFF;
+}
+.darkai-send-btn.is-stop:hover {
+  filter: brightness(1.08);
+}
+
+.darkai-inst-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.25rem;
+  border-radius: 9999px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.darkai-inst-chip:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Markdown Typography & Tables */
+.darkai-md {
+  font-size: 13.5px;
+  line-height: 1.58;
+  color: #E4E4E2;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.darkai-ul {
+  list-style: disc;
+  padding-left: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.darkai-ol {
+  list-style: decimal;
+  padding-left: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.darkai-li, .darkai-oli {
+  line-height: 1.5;
+  color: #E4E4E2;
+}
+.darkai-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  background-color: #16161A;
+  border: 1px solid #26262C;
+  color: rgb(var(--accent));
+}
+.darkai-pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background-color: #0C0C0E;
+  border: 1px solid #1E1E24;
+  color: #E4E4E2;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+.darkai-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #1F1F24;
+  background-color: #0A0A0D;
+  margin: 0.25rem 0;
+}
+.darkai-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12.5px;
+}
+.darkai-th {
+  padding: 0.65rem 0.9rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #121216;
+  border-bottom: 1px solid #222228;
+  white-space: nowrap;
+}
+.darkai-td {
+  padding: 0.6rem 0.9rem;
+  color: #D8D8D6;
+  border-bottom: 1px solid #18181D;
+  vertical-align: top;
+}
+.darkai-tr:last-child .darkai-td {
+  border-bottom: 0;
+}
+.darkai-tr:hover .darkai-td {
+  background-color: rgba(255, 255, 255, 0.02);
+}

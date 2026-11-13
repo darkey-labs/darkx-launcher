@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: https://cdn.modrinth.com https://media.forgecdn.net; font-src 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DarkX Launcher</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="h-full flex flex-col">
+    <header class="drag h-[42px] grid grid-cols-[1fr_auto_1fr] items-center shrink-0 border-b border-line">
+      <div class="flex items-center gap-3 pl-4">
+        <span id="tb-logo" class="nodrag w-6 h-6 shrink-0 cursor-pointer select-none"></span>
+        <button id="acc-chip" class="nodrag acc-chip" aria-haspopup="true"></button>
+      </div>
+      <div class="text-[14px] font-bold tracking-wide">DarkX Launcher</div>
+      <div class="nodrag flex h-full justify-self-end">
+        <button id="w-min" class="w-12 grid place-items-center text-dim hover:bg-raise hover:text-ink" aria-label="Свернуть"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" stroke-width="1.2"/></svg></button>
+        <button id="w-max" class="w-12 grid place-items-center text-dim hover:bg-raise hover:text-ink" aria-label="Развернуть"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></button>
+        <button id="w-close" class="w-12 grid place-items-center text-dim hover:bg-abort hover:text-black" aria-label="Закрыть"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      </div>
+    </header>
+    <div class="flex-1 flex min-h-0">
+      <aside class="w-[66px] shrink-0 border-r border-line pt-5 pb-3 flex flex-col items-center">
+        <nav id="nav" class="flex flex-col items-center gap-3"></nav>
+        <div class="flex-1"></div>
+        <div id="nav-bottom" class="flex flex-col items-center gap-2"></div>
+        <div id="side-ver" class="text-[10px] text-mute pt-2"></div>
+      </aside>
+      <main id="main" class="flex-1 min-w-0 overflow-y-auto"></main>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+  <div id="overlay-root"></div>
+  <div id="toasts" class="fixed right-4 bottom-4 flex flex-col gap-2 items-end z-[70]"></div>
+  <script src="i18n.js"></script>
+  <script src="core.js"></script>
+  <script src="cover.js"></script>
+  <script src="greet.js"></script>
+  <script src="mods-ui.js"></script>
+  <script src="skins-ui.js"></script>
+  <script src="wizard.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

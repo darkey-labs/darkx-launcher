@@ -1,0 +1,5 @@
+main/lib
+lib/ai.js
+launcher.config.json
+dist/
+launcher.local.json
