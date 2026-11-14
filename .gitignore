@@ -1,0 +1,4 @@
+launcher.config.json
+dist/
+launcher.local.json
+node_modules/
