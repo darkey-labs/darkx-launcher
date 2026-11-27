@@ -1,10 +1,10 @@
 {
   "launcherName": "DarkX Launcher",
   "defaultMcVersion": "1.21.11",
-  "darkxClientUrl": "https://github.com/darkey-labs/darkx/releases/download/1.21.4-1.3.3/darkx-visuals-1.21.11-1.3.3.jar",
+  "darkxClientUrl": "https://github.com/darkey-labs/darkx/releases/download/1.3.4/darkx-visuals-1.21.11-1.3.4.jar",
   "darkxClientUrls": {
-    "1.21.11": "https://github.com/darkey-labs/darkx/releases/download/1.21.4-1.3.3/darkx-visuals-1.21.11-1.3.3.jar",
-    "1.21.4": "https://github.com/darkey-labs/darkx/releases/download/1.21.4-1.3.3/darkx-visuals-1.21.4-1.3.3.jar"
+    "1.21.11": "https://github.com/darkey-labs/darkx/releases/download/1.3.4/darkx-visuals-1.21.11-1.3.4.jar",
+    "1.21.4": "https://github.com/darkey-labs/darkx/releases/download/1.3.4/darkx-visuals-1.21.4-1.3.4.jar"
   },
   "darkxClientFile": "darkx-visuals.jar",
   "msClientId": "00000000402b5328",

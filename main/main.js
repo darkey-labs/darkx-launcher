@@ -21,6 +21,7 @@ const skins = require('./lib/skins');
 const updater = require('./lib/updater');
 const ping = require('./lib/ping');
 const importers = require('./lib/importers');
+const packshare = require('./lib/packshare');
 const ai = require('./lib/ai');
 const crash = require('./lib/crash');
 const I18N = require('../renderer/i18n');
@@ -109,7 +110,9 @@ function effective() {
     memoryMb: s.memoryMb,
     jvmArgs: s.jvmArgs,
     msClientId: CONFIG.msClientId || accounts.OFFICIAL_MS_CLIENT_ID,
+    defaultMcVersion: CONFIG.defaultMcVersion || '',
     darkxClientUrl: CONFIG.darkxClientUrl || '',
+    darkxClientUrls: CONFIG.darkxClientUrls || {},
     darkxClientFile: CONFIG.darkxClientFile || 'darkx-visuals.jar',
     darkxMcVersions: CONFIG.darkxMcVersions || [],
     releasesRepo: CONFIG.releasesRepo || '',
@@ -543,6 +546,113 @@ handle('inst:update', (id, patch) => {
   for (const k of ['name', 'memoryMb', 'jvmArgs', 'darkx', 'loaderOrigin', 'banner', 'icon']) if (k in patch) i[k] = patch[k];
   store.save('instances');
   return snapshot();
+});
+
+// ---- шаринг сборок (код DarkX Network + .dxpack)
+
+function uniqueInstanceId(name) {
+  const base = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'pack';
+  const arr = instances();
+  let uid = base, n = 1;
+  while (arr.some((x) => x.id === uid)) uid = base + '-' + (++n);
+  return uid;
+}
+
+function currentAuthorName() {
+  const s = settings();
+  const acc = accounts.list().find((a) => a.id === s.selectedAccount) || accounts.list()[0];
+  return acc ? acc.name : '';
+}
+
+handle('pack:inspect', (instId) => {
+  const i = instances().find((x) => x.id === instId);
+  if (!i) throw new Error('Сборка не найдена');
+  return packshare.publicStats(packshare.inspectInstance(i));
+});
+
+handle('pack:exportFile', async (instId, opts) => {
+  const i = instances().find((x) => x.id === instId);
+  if (!i) throw new Error('Сборка не найдена');
+  const safeName = String(i.name || 'darkx-pack').replace(/[<>:"/\\|?*]+/g, '_').trim() || 'darkx-pack';
+  const r = await dialog.showSaveDialog(win, {
+    title: 'Сохранить сборку DarkX',
+    defaultPath: safeName + '.dxpack',
+    filters: [{ name: 'Сборка DarkX (.dxpack)', extensions: ['dxpack'] }]
+  });
+  if (r.canceled || !r.filePath) return null;
+  return packshare.exportFile(i, r.filePath, currentAuthorName(), opts || {}, (p) => send('ev:pack', p));
+});
+
+handle('pack:shareCode', async (instId, opts) => {
+  const i = instances().find((x) => x.id === instId);
+  if (!i) throw new Error('Сборка не найдена');
+  return packshare.publishCode(effective().firebaseUrl, i, currentAuthorName(), opts || {}, (p) => send('ev:pack', p));
+});
+
+handle('pack:pickFile', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Выбери файл сборки .dxpack',
+    properties: ['openFile'],
+    filters: [{ name: 'Сборка DarkX (.dxpack)', extensions: ['dxpack', 'zip'] }]
+  });
+  if (r.canceled || !r.filePaths.length) return null;
+  return packshare.inspectFile(r.filePaths[0]);
+});
+
+handle('pack:fetchCode', async (rawCode) => {
+  const info = await packshare.fetchCode(effective().firebaseUrl, rawCode);
+  const { _raw, ...pub } = info;
+  return pub;
+});
+
+handle('pack:importFile', async (filePath, customName) => {
+  const preview = packshare.inspectFile(filePath);
+  const name = String(customName || preview.name || 'Импорт').trim().slice(0, 32) || 'Импорт';
+  const uid = uniqueInstanceId(name);
+  const instDir = P.instance(uid);
+  const res = await packshare.importFromFile(filePath, instDir, (p) => send('ev:pack', p));
+  const loaderType = preview.loader || (preview.darkx ? 'dx' : preview.fabric ? 'fabric' : 'vanilla');
+  instances().push({
+    id: uid,
+    name,
+    mc: preview.mc,
+    loaderOrigin: loaderType,
+    fabric: loaderType === 'dx' || loaderType === 'fabric' || !!preview.fabric,
+    darkx: loaderType === 'dx' || !!preview.darkx,
+    banner: res.banner || null,
+    icon: res.icon || null,
+    memoryMb: 0,
+    kind: 'custom'
+  });
+  settings().selectedInstance = uid;
+  store.save('instances');
+  store.save('settings');
+  return { state: snapshot(), extracted: res.extracted, name };
+});
+
+handle('pack:importCode', async (rawCode, customName) => {
+  const preview = await packshare.fetchCode(effective().firebaseUrl, rawCode);
+  const name = String(customName || preview.name || 'Сборка').trim().slice(0, 32) || 'Сборка';
+  const uid = uniqueInstanceId(name);
+  const instDir = P.instance(uid);
+  const res = await packshare.importFromCode(effective().firebaseUrl, rawCode, instDir, (p) => send('ev:pack', p));
+  const loaderType = preview.loader || (preview.darkx ? 'dx' : preview.fabric ? 'fabric' : 'vanilla');
+  instances().push({
+    id: uid,
+    name,
+    mc: preview.mc,
+    loaderOrigin: loaderType,
+    fabric: loaderType === 'dx' || loaderType === 'fabric' || !!preview.fabric,
+    darkx: loaderType === 'dx' || !!preview.darkx,
+    banner: null,
+    icon: null,
+    memoryMb: 0,
+    kind: 'custom'
+  });
+  settings().selectedInstance = uid;
+  store.save('instances');
+  store.save('settings');
+  return { state: snapshot(), downloaded: res.downloaded, failed: res.failed, extracted: res.extracted, name };
 });
 
 handle('inst:pickImage', async (title) => {

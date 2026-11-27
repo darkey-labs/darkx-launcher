@@ -581,6 +581,12 @@ function renderInstances(main) {
   h('img', { src: filterIcon, alt: '', class: 'w-6 h-6 object-contain pixel-img' }),
   svg('chevron', 18, 'text-ink'));
 
+  const importPackBtn = h('button', {
+    class: 'h-12 px-5 rounded-full bg-[#121214] hover:bg-[#1B1B1F] border border-line flex items-center gap-2 text-[14px] font-bold text-ink cursor-pointer transition-colors',
+    title: 'Импортировать сборку друга по коду DarkX или из файла .dxpack',
+    onclick: () => openImportPackModal()
+  }, h('span', { class: 'text-accent' }, svg('share', 17)), 'Импорт сборки');
+
   const jarBtn = h('button', {
     class: 'h-12 px-5 rounded-full bg-[#121214] hover:bg-[#1B1B1F] border border-line flex items-center gap-2 text-[14px] font-bold text-ink cursor-pointer transition-colors',
     title: 'Создать сборку из своего .JAR файла',
@@ -598,6 +604,11 @@ function renderInstances(main) {
     art.append(
       h('div', { class: 'absolute inset-0 grid place-items-center z-10' }, instIconBadge(i, 80)),
       h('div', { class: 'absolute top-3 right-3 z-20 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity' },
+        h('button', {
+          class: 'w-8 h-8 rounded-xl bg-black/70 backdrop-blur-md text-ink hover:text-accent grid place-items-center',
+          title: 'Поделиться сборкой (моды и ресурспаки)',
+          onclick: (e) => { e.stopPropagation(); openSharePackModal(i); }
+        }, svg('share', 15)),
         h('button', {
           class: 'w-8 h-8 rounded-xl bg-black/70 backdrop-blur-md text-ink hover:text-accent grid place-items-center',
           title: 'Распаковать моды из архива',
@@ -649,7 +660,7 @@ function renderInstances(main) {
   main.append(h('div', { class: 'fade-in flex flex-col gap-7 max-w-[1040px] mx-auto pt-4 pb-10 px-6' },
     h('div', { class: 'flex items-center justify-between gap-4 flex-wrap' },
       h('h2', { class: 'text-[42px] font-extrabold tracking-tight leading-none' }, 'Сборки'),
-      h('div', { class: 'flex items-center gap-3 flex-wrap' }, filterBtn, jarBtn, addBtn)),
+      h('div', { class: 'flex items-center gap-3 flex-wrap' }, filterBtn, importPackBtn, jarBtn, addBtn)),
     h('div', { class: 'flex flex-wrap gap-7' }, cards)));
 }
 
@@ -670,8 +681,12 @@ function instanceContextMenu(ev, inst) {
       inst.name + ' · ' + inst.mc + ' (' + instLoaderName(inst) + ')'),
     h('button', {
       class: 'flex items-center gap-3 p-2.5 rounded-xl text-left font-bold text-accent hover:bg-raise',
+      onclick: () => { close(); openSharePackModal(inst); }
+    }, svg('share', 16, 'text-accent'), 'Поделиться сборкой'),
+    h('button', {
+      class: 'flex items-center gap-3 p-2.5 rounded-xl text-left hover:bg-raise',
       onclick: () => { close(); unpackModsFromArchive(inst); }
-    }, svg('download', 16, 'text-accent'), 'Распаковать моды из архива'),
+    }, svg('download', 16, 'text-mute'), 'Распаковать моды из архива'),
     inst.fabric ? h('button', {
       class: 'flex items-center gap-3 p-2.5 rounded-xl text-left hover:bg-raise',
       onclick: async () => { close(); const s = await act(api.saveSettings, { modsInstance: inst.id }); if (s) { S = s; go('mods'); } }
@@ -688,6 +703,275 @@ function instanceContextMenu(ev, inst) {
       }, svg('trash', 16), 'Удалить сборку')
     ] : null
   ], { width: 260 });
+}
+
+function fmtBytes(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return n + ' Б';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' КБ';
+  return (n / 1048576).toFixed(n >= 10485760 ? 1 : 2) + ' МБ';
+}
+
+function openSharePackModal(inst) {
+  const opts = { mods: true, resourcepacks: true, shaderpacks: true, configs: false };
+  const body = h('div', { class: 'flex flex-col gap-4' },
+    h('div', { class: 'flex items-center gap-3 p-3 rounded-2xl bg-raise border border-line' },
+      instIconBadge(inst, 44, 14),
+      h('div', { class: 'min-w-0 flex-1' },
+        h('div', { class: 'text-[15px] font-extrabold truncate' }, inst.name),
+        h('div', { class: 'text-[12px] text-dim' }, 'Minecraft ' + inst.mc + ' · ' + instLoaderName(inst)))));
+
+  const listBox = h('div', { class: 'flex flex-col gap-2' },
+    h('div', { class: 'text-[12px] text-dim py-2' }, 'Считаем файлы сборки…'));
+  const progBox = h('div', { class: 'hidden flex flex-col gap-2 p-3 rounded-2xl bg-raise border border-line' });
+  const progText = h('div', { class: 'text-[12px] text-dim truncate' }, '');
+  const progBar = h('div', { class: 'h-full bg-accent rounded-full transition-[width] duration-200', style: 'width:0%' });
+  progBox.append(progText, h('div', { class: 'h-1.5 rounded-full bg-tile overflow-hidden' }, progBar));
+
+  const resultBox = h('div', { class: 'hidden flex flex-col gap-2.5 p-4 rounded-2xl bg-raise border border-accent/40' });
+  body.append(listBox, progBox, resultBox);
+
+  let busy = false;
+  let unsub = api.onPack ? api.onPack((p) => {
+    if (!p) return;
+    progBox.classList.remove('hidden');
+    progText.textContent = p.text || '';
+    progBar.style.width = Math.max(0, Math.min(100, Number(p.pct) || 0)) + '%';
+  }) : null;
+
+  const cleanup = () => { if (unsub) { unsub(); unsub = null; } };
+
+  const mkRow = (key, title, count, bytes) => {
+    const chk = h('input', { type: 'checkbox', class: 'accent-[rgb(var(--accent))] w-4 h-4 cursor-pointer' });
+    chk.checked = !!opts[key] && count > 0;
+    opts[key] = chk.checked;
+    chk.disabled = count === 0;
+    chk.onchange = () => { opts[key] = chk.checked; };
+    return h('label', {
+      class: 'flex items-center justify-between gap-3 p-2.5 rounded-xl bg-raise border border-line ' + (count ? 'cursor-pointer hover:border-line2' : 'opacity-50')
+    },
+      h('span', { class: 'flex items-center gap-2.5 min-w-0' },
+        chk,
+        h('span', { class: 'text-[13px] font-bold truncate' }, title)),
+      h('span', { class: 'text-[12px] text-dim shrink-0 tabular-nums' }, count + ' шт. · ' + fmtBytes(bytes)));
+  };
+
+  (async () => {
+    try {
+      const st = await call(api.packInspect, inst.id);
+      listBox.textContent = '';
+      listBox.append(
+        mkRow('mods', 'Моды (mods/)', st.modsCount, st.modsBytes),
+        mkRow('resourcepacks', 'Ресурспаки (resourcepacks/)', st.rpCount, st.rpBytes),
+        mkRow('shaderpacks', 'Шейдеры (shaderpacks/)', st.spCount, st.spBytes),
+        mkRow('configs', 'Конфиги и options.txt', st.cfgCount, st.cfgBytes)
+      );
+    } catch (e) {
+      listBox.textContent = '';
+      listBox.append(h('div', { class: 'text-[12px] text-bad' }, e.message || 'Не удалось просканировать сборку'));
+    }
+  })();
+
+  let btnCode, btnFile;
+  const setBusy = (v) => {
+    busy = v;
+    if (btnCode) btnCode.disabled = v;
+    if (btnFile) btnFile.disabled = v;
+  };
+
+  modal('Поделиться сборкой', body, (close) => {
+    const closeSafe = () => { cleanup(); close(); };
+    btnFile = h('button', {
+      class: 'btn',
+      onclick: async () => {
+        if (busy) return;
+        setBusy(true);
+        resultBox.classList.add('hidden');
+        try {
+          const r = await call(api.packExportFile, inst.id, opts);
+          if (r) {
+            toast('Файл .dxpack сохранён (' + fmtBytes(r.size) + ')', 'ok');
+            resultBox.textContent = '';
+            resultBox.classList.remove('hidden');
+            resultBox.append(
+              h('div', { class: 'text-[13px] font-bold text-ok flex items-center gap-2' }, svg('check', 16), 'Архив .dxpack сохранён'),
+              h('div', { class: 'text-[12px] text-dim break-all' }, r.path),
+              h('div', { class: 'text-[11px] text-mute' }, 'Отправь этот файл другу — он импортирует его за 1 клик через «Импорт сборки».')
+            );
+          }
+        } catch (_) { /* toast показан call() */ } finally { setBusy(false); }
+      }
+    }, svg('download', 15), 'Сохранить .dxpack');
+
+    btnCode = h('button', {
+      class: 'btn btn-accent',
+      onclick: async () => {
+        if (busy) return;
+        setBusy(true);
+        resultBox.classList.add('hidden');
+        try {
+          const r = await call(api.packShareCode, inst.id, opts);
+          resultBox.textContent = '';
+          resultBox.classList.remove('hidden');
+          const copyCode = async () => {
+            try { await navigator.clipboard.writeText(r.code); toast('Код ' + r.code + ' скопирован!', 'ok'); }
+            catch (_) { toast('Код сборки: ' + r.code, 'ok'); }
+          };
+          resultBox.append(
+            h('div', { class: 'text-[12px] font-bold text-accent' }, 'Код DarkX Network готов — отправь его другу:'),
+            h('div', { class: 'flex items-center gap-2' },
+              h('div', { class: 'flex-1 h-11 px-4 rounded-xl bg-black/70 border border-line flex items-center justify-center font-mono text-[20px] font-extrabold tracking-[0.18em] text-ink select-all' }, r.code),
+              h('button', { class: 'btn btn-accent !h-11 !px-4', onclick: copyCode }, svg('copy', 16), 'Копировать')),
+            h('div', { class: 'text-[11px] text-dim' },
+              'Modrinth: ' + r.modrinthCount + ' · кастомных файлов: ' + r.customCount
+              + (r.bundleHost ? ' (' + r.bundleHost + ')' : ''))
+          );
+          toast('Сборка опубликована: ' + r.code, 'ok');
+        } catch (_) { /* toast уже показан */ } finally { setBusy(false); }
+      }
+    }, svg('share', 15), 'Получить код DarkX');
+
+    return [
+      h('button', { class: 'btn', onclick: closeSafe }, 'Закрыть'),
+      btnFile,
+      btnCode
+    ];
+  }, 540);
+}
+
+function openImportPackModal() {
+  let mode = 'code'; // 'code' | 'file'
+  let preview = null;
+  let busy = false;
+
+  const codeInput = h('input', {
+    class: 'input flex-1 font-mono uppercase tracking-[0.12em]',
+    placeholder: 'DX-A7K9M2',
+    spellcheck: 'false'
+  });
+  const nameInput = h('input', { class: 'input w-full', placeholder: 'Название новой сборки' });
+  const previewBox = h('div', { class: 'hidden flex flex-col gap-3 p-3.5 rounded-2xl bg-raise border border-line' });
+  const progBox = h('div', { class: 'hidden flex flex-col gap-2 p-3 rounded-2xl bg-raise border border-line' });
+  const progText = h('div', { class: 'text-[12px] text-dim truncate' }, '');
+  const progBar = h('div', { class: 'h-full bg-accent rounded-full transition-[width] duration-200', style: 'width:0%' });
+  progBox.append(progText, h('div', { class: 'h-1.5 rounded-full bg-tile overflow-hidden' }, progBar));
+
+  let unsub = api.onPack ? api.onPack((p) => {
+    if (!p) return;
+    progBox.classList.remove('hidden');
+    progText.textContent = p.text || '';
+    progBar.style.width = Math.max(0, Math.min(100, Number(p.pct) || 0)) + '%';
+  }) : null;
+  const cleanup = () => { if (unsub) { unsub(); unsub = null; } };
+
+  let installBtn;
+  const renderPreview = () => {
+    previewBox.textContent = '';
+    if (!preview) {
+      previewBox.classList.add('hidden');
+      if (installBtn) installBtn.disabled = true;
+      return;
+    }
+    previewBox.classList.remove('hidden');
+    if (installBtn) installBtn.disabled = busy;
+    nameInput.value = preview.name || '';
+    const c = preview.counts || {};
+    const chips = [
+      'MC ' + preview.mc,
+      LOADER_NAMES[preview.loader] || preview.loader || 'Fabric',
+      'Модов: ' + (c.mods || 0),
+      'Ресурспаков: ' + (c.resourcepacks || 0)
+    ];
+    if (c.shaderpacks) chips.push('Шейдеров: ' + c.shaderpacks);
+    if (c.configs) chips.push('Конфигов: ' + c.configs);
+    previewBox.append(
+      h('div', { class: 'flex items-center justify-between gap-2' },
+        h('div', { class: 'text-[15px] font-extrabold truncate' }, preview.name),
+        preview.author ? h('span', { class: 'text-[11px] text-dim shrink-0' }, 'от ' + preview.author) : null),
+      h('div', { class: 'flex flex-wrap gap-1.5' }, chips.map((x) => h('span', { class: 'chip' }, x))),
+      h('div', { class: 'flex flex-col gap-1' },
+        h('div', { class: 'text-[11px] text-dim font-semibold' }, 'Название у тебя в лаунчере'),
+        nameInput)
+    );
+  };
+
+  const lookupCode = async () => {
+    if (busy || !codeInput.value.trim()) return;
+    busy = true;
+    try {
+      preview = await call(api.packFetchCode, codeInput.value.trim());
+      mode = 'code';
+      renderPreview();
+    } catch (_) {
+      preview = null;
+      renderPreview();
+    } finally { busy = false; renderPreview(); }
+  };
+
+  const pickFile = async () => {
+    if (busy) return;
+    try {
+      const info = await call(api.packPickFile);
+      if (!info) return;
+      preview = info;
+      mode = 'file';
+      renderPreview();
+    } catch (_) {}
+  };
+
+  codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') lookupCode(); });
+
+  const body = h('div', { class: 'flex flex-col gap-4' },
+    h('div', { class: 'flex flex-col gap-2' },
+      h('div', { class: 'text-[12px] font-bold text-dim' }, 'По коду DarkX Network'),
+      h('div', { class: 'flex gap-2' },
+        codeInput,
+        h('button', { class: 'btn btn-accent !px-4', onclick: lookupCode }, svg('search', 15), 'Найти'))),
+    h('div', { class: 'flex items-center gap-3' },
+      h('div', { class: 'h-px flex-1 bg-line' }),
+      h('span', { class: 'text-[11px] text-mute' }, 'или'),
+      h('div', { class: 'h-px flex-1 bg-line' })),
+    h('button', {
+      class: 'btn w-full justify-center',
+      onclick: pickFile
+    }, svg('folder', 16), 'Выбрать файл сборки (.dxpack)'),
+    previewBox,
+    progBox
+  );
+
+  setTimeout(() => codeInput.focus(), 40);
+
+  modal('Импорт сборки', body, (close) => {
+    const closeSafe = () => { cleanup(); close(); };
+    installBtn = h('button', {
+      class: 'btn btn-accent',
+      disabled: true,
+      onclick: async () => {
+        if (busy || !preview) return;
+        busy = true;
+        installBtn.disabled = true;
+        try {
+          const customName = nameInput.value.trim() || preview.name;
+          const res = mode === 'file'
+            ? await call(api.packImportFile, preview.filePath, customName)
+            : await call(api.packImportCode, preview.code, customName);
+          if (res && res.state) {
+            setState(res.state);
+            toast('Сборка «' + res.name + '» добавлена!', 'ok');
+            closeSafe();
+          }
+        } catch (_) {
+          busy = false;
+          installBtn.disabled = false;
+        }
+      }
+    }, svg('download', 15), 'Установить сборку');
+
+    return [
+      h('button', { class: 'btn', onclick: closeSafe }, 'Отмена'),
+      installBtn
+    ];
+  }, 500);
 }
 
 async function unpackModsFromArchive(inst) {

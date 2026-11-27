@@ -147,8 +147,9 @@ async function fetchWebLatestRelease(repo, withAssets = true) {
     throw err;
   }
   const html = r.body.toString('utf8');
-  const tagMatch = /\/releases\/tag\/([^"'?#\s<>]+)/i.exec(html)
-    || /\/releases\/expanded_assets\/([^"'?#\s<>]+)/i.exec(html);
+  const escRepo = repo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const tagMatch = new RegExp('/' + escRepo + '/releases/expanded_assets/([^"\'?#\\s<>*{}]+)', 'i').exec(html)
+    || new RegExp('/' + escRepo + '/releases/tag/([^"\'?#\\s<>*{}]+)', 'i').exec(html);
   if (!tagMatch) return [];
   const tag = decodeURIComponent(tagMatch[1]);
   const titleMatch = /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html) || /<title[^>]*>Release\s+([^·<]+)/i.exec(html);
@@ -238,54 +239,95 @@ async function latest(cfg, count = 5) {
 
 let assetMem = null;
 
-/** Тег релиза DarkX начинается с версии игры: 1.21.11, 1.21.4, 1.21.11-U9. «1.21.1» не должен цеплять «1.21.11». */
+/** Тег релиза DarkX содержит версию игры: 1.21.11, 1.21.4, 1.21.11-U9. «1.21.1» не должен цеплять «1.21.11». */
 function tagIsFor(tag, mc) {
   const t = String(tag || '').replace(/^v/i, '');
   if (t === mc || (t.startsWith(mc) && !/[\d.]/.test(t.charAt(mc.length)))) return true;
   const esc = String(mc || '').replace(/\./g, '\\.');
-  return new RegExp('(?:^|[^\\d.])' + esc + '(?:$|[^\\d.])').test(t);
-}
-
-function assetMatchesMc(name, mc) {
-  const esc = String(mc || '').replace(/\./g, '\\.');
-  return new RegExp('(?:^|[^\\d.])' + esc + '(?:$|[^\\d.])').test(String(name || ''));
+  return new RegExp('(?:^|[^\\d.])' + esc + '(?:$|[^\\d.]|\\.(?!\\d))').test(t);
 }
 
 /**
- * Jar мода DarkX из самого свежего релиза под нужную версию игры (1.21.11 или 1.21.4).
- * Проверяет как тег релиза, так и имя .jar ассета (например darkx-visuals-1.21.4-1.3.3.jar).
+ * Проверяет, что имя .jar-файла относится к нужной версии Minecraft.
+ * Корректно матчит и «darkx-visuals-1.3.4+mc1.21.11.jar» (точка перед .jar),
+ * и «darkx-visuals-1.21.11-1.3.3.jar», при этом «1.21.1» не матчит «1.21.11».
+ */
+function assetMatchesMc(name, mc) {
+  const base = String(name || '').replace(/\.?jar$/i, '');
+  const esc = String(mc || '').replace(/\./g, '\\.');
+  return new RegExp('(?:^|[^\\d.])' + esc + '(?:$|[^\\d.]|\\.(?!\\d))').test(base);
+}
+
+function pickJarFromRelease(r, mc) {
+  if (!r || r.draft) return null;
+  const assets = r.assets || [];
+  let jars = assets.filter((a) => /\.jar$/i.test(a.name) && !/-(sources|dev|javadoc)\.jar$/i.test(a.name));
+  // даже если в имени ассета на GitHub случайно пропустили точку перед jar (например «1.3.4jar»)
+  const looseJars = assets.filter((a) => /jar$/i.test(a.name) && !/-(sources|dev|javadoc)\.?jar$/i.test(a.name));
+  const pool = jars.length ? jars : looseJars;
+  const byName = jars.find((x) => assetMatchesMc(x.name, mc)) || looseJars.find((x) => assetMatchesMc(x.name, mc));
+  if (byName) {
+    return { url: byName.browser_download_url, file: byName.name, size: byName.size, tag: r.tag_name };
+  }
+  if (tagIsFor(r.tag_name, mc) && pool.length) {
+    const a = pool.find((x) => /darkx/i.test(x.name)) || pool[0];
+    if (a) return { url: a.browser_download_url, file: a.name, size: a.size, tag: r.tag_name };
+  }
+  return null;
+}
+
+/**
+ * Jar мода DarkX под нужную версию игры (1.21.11 или 1.21.4).
+ * 1) Всегда сначала берёт из Latest-релиза GitHub (/releases/latest), наплевав на формат тега.
+ * 2) Если в Latest нет jar под нужную версию MC, ищет самый свежий подходящий релиз в списке.
  */
 async function clientAsset(cfg, mc) {
   const repo = repoOf(cfg);
   if (!repo) return null;
-  if (assetMem && assetMem.key === repo + '|' + mc && Date.now() - assetMem.t < 5 * 60 * 1000) return assetMem.value;
-  let rels;
-  try {
-    rels = await http.json('https://api.github.com/repos/' + repo + '/releases?per_page=30', {
-      headers: ghHeaders(cfg)
-    });
-  } catch (_) {
-    try {
-      rels = await fetchWebReleases(repo, 12, true);
-    } catch (__) {
-      return null;
-    }
-  }
-  const when = (r) => Date.parse(r.published_at || r.created_at || 0) || 0;
+  if (assetMem && assetMem.key === repo + '|' + mc && Date.now() - assetMem.t < 30 * 1000) return assetMem.value;
+
   let value = null;
-  const all = (rels || []).filter((r) => !r.draft).sort((a, b) => when(b) - when(a));
-  for (const r of all) {
-    const jars = (r.assets || []).filter((a) => /\.jar$/i.test(a.name) && !/-(sources|dev|javadoc)\.jar$/i.test(a.name));
-    const byName = jars.find((x) => assetMatchesMc(x.name, mc));
-    if (byName) {
-      value = { url: byName.browser_download_url, file: byName.name, size: byName.size, tag: r.tag_name };
-      break;
+
+  // 1. Всегда сначала проверяем Latest-релиз напрямую (API -> веб-парсер /releases/latest)
+  try {
+    let latestRel = null;
+    try {
+      const res = await http.json('https://api.github.com/repos/' + repo + '/releases/latest', {
+        headers: ghHeaders(cfg)
+      });
+      if (res && !Array.isArray(res)) latestRel = res;
+    } catch (_) {
+      const web = await fetchWebLatestRelease(repo, true);
+      if (web && web.length) latestRel = web[0];
     }
-    if (tagIsFor(r.tag_name, mc)) {
-      const a = jars.find((x) => /darkx/i.test(x.name)) || jars[0];
-      if (a) { value = { url: a.browser_download_url, file: a.name, size: a.size, tag: r.tag_name }; break; }
+    value = pickJarFromRelease(latestRel, mc);
+  } catch (_) { /* идём к полному списку релизов */ }
+
+  // 2. Если в Latest нет сборки для этой версии MC — ищем по всему списку релизов от нового к старому
+  if (!value) {
+    let rels;
+    try {
+      rels = await http.json('https://api.github.com/repos/' + repo + '/releases?per_page=30', {
+        headers: ghHeaders(cfg)
+      });
+    } catch (_) {
+      try {
+        rels = await fetchWebReleases(repo, 12, true);
+      } catch (__) {
+        return null;
+      }
+    }
+    const when = (r) => Date.parse(r.published_at || r.created_at || 0) || 0;
+    const all = (rels || []).filter((r) => !r.draft).sort((a, b) => when(b) - when(a));
+    for (const r of all) {
+      const hit = pickJarFromRelease(r, mc);
+      if (hit) {
+        value = hit;
+        break;
+      }
     }
   }
+
   assetMem = { key: repo + '|' + mc, t: Date.now(), value };
   return value;
 }

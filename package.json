@@ -1,7 +1,7 @@
 {
   "name": "darkx-launcher",
   "productName": "DarkX Launcher",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Лаунчер Minecraft с автоустановкой Fabric и DarkX Visuals",
   "main": "main/main.js",
   "author": "DarkX",
